@@ -42,11 +42,16 @@ namespace Packet
         ::std::string _str;
       };
 
-    struct Version2 :
+    struct Version :
         public BitMap
       {
+        Version(::std::string ver);
+
         virtual ::std::string getStrRepre() override;
 
         virtual ::std::vector<BYTE> getBinary();
+
+    private:
+        ::std::string _version;
       };
   }

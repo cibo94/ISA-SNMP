@@ -14,7 +14,7 @@
 namespace Packet
   {
     SNMPv2::SNMPv2()
-      { this->push_back(new ::Packet::Version2()); }
+      { }
 
     ::std::string SNMPv2::getStrRepre()
       {
@@ -53,17 +53,18 @@ namespace Packet
         return ::StrToBin(_str);
       }
 
-    ::std::string Version2::getStrRepre()
+      Version::Version(::std::string ver) :
+          _version(ver)
+        { }
+
+    ::std::string Version::getStrRepre()
       {
-        return ::std::string("2");
+        return _version;
       }
 
-    ::std::vector<BYTE> Version2::getBinary()
+    ::std::vector<BYTE> Version::getBinary()
       {
-        ::std::vector<BYTE> ret;
-        ret.resize(4);
-        ret[3] = static_cast<BYTE>(2);
-        return ret;
+        return ::NumToBin((uint32_t)::std::stoi(_version));
       }
 
     namespace PDU
@@ -102,10 +103,7 @@ namespace Packet
 
         ::std::vector<BYTE> Type::getBinary()
           {
-            ::std::vector<BYTE> ret;
-            ret.resize(4);
-            ret[3] = static_cast<BYTE>(_type);
-            return ret;
+            return ::NumToBin(static_cast<uint32_t>(_type));
           }
 
         RequestID::RequestID(uint32_t id) :
@@ -202,7 +200,7 @@ namespace Packet
             ::std::vector<BYTE> ObjectValue::getBinary()
               {
                 return not_set ? ::std::vector<BYTE>({0})
-                               : ::StrToBin(_value);
+                                : ::StrToBin(_value);
               }
           }
       }

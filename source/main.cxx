@@ -6,10 +6,10 @@
  */
 
 #include <iostream>
+#include <thread>
 #include "../include/params.hxx"
 #include "../include/packet.hxx"
 #include "../include/pdu.hxx"
-#include "../include/pdu_bindings.hxx"
 #include "../include/manager.hxx"
 
 
@@ -30,12 +30,50 @@
 #define PORT 161
 #define TRAP_PORT 162
 
+bool is_number(const std::string& s)
+  {
+    return !s.empty() && std::find_if(
+        s.begin(), s.end(), [](char c) { return !std::isdigit(c); }) == s.end();
+  }
+
+::std::string pretty_hex_bin(::std::string str)
+  {
+    int i = 1;
+    ::std::string out;
+    for (auto &ch: str)
+      {
+        out.push_back(ch);
+        if (i == 8)
+          {
+            out += "\n";
+            i = 0;
+          }
+        i++;
+      }
+    return out;
+  }
+
+void messenger(::std::string community, ::Manager &manager)
+  {
+    auto snmp = manager.send(
+        community, ::Packet::PDU::Type::GET_BULK_REQ,
+        1, 1, 1).retrieve();
+    if (snmp == nullptr)
+      throw ::std::runtime_error(
+          "Bad response from server!");
+    ::std::cout << snmp->getStrRepre() << ::std::endl <<
+    ::pretty_hex_bin(::BinToStr(snmp->getBinary())) <<
+    ::std::endl;
+  }
+
+::std::vector<::std::thread> threads;
 
 int main(
     int argc,
     char *argv[])
   {
-    ::std::string interval, community, address;
+    /* Default values of parameters */
+    ::std::string interval = "100", community, address;
     ::Params _p;
     _p.addOption(
         'h', "help", [](::std::string)
@@ -48,22 +86,24 @@ int main(
       {
         _p.Parse(argc, argv);
         address = _p[0];
-        if (interval == "" || community == "" || address == "")
+
+        /*  Parameter checks */
+        if (community == "" || address == "")
           throw ::std::runtime_error(
-              "Required parameters are interval, community, address!");
-        ::Manager manager = createManager(
-            community, ::Packet::PDU::Type::GET_REQ, 0xABCDEF, 42, 42);
-        ::std::cout << manager.toString() << ::std::endl;
-        int i = 1;
-        for (auto &ch: BinToStr(manager.toBinary()))
+              "Required parameters are community, address!");
+        if (!is_number(interval))
+          throw ::std::runtime_error(
+              "Interval must be numeric!");
+
+        /* Main loop for sending and retrieving SNMP messages */
+        ::Manager manager(address, PORT);
+        while (1)
           {
-            ::std::cout << ch;
-            if (i == 8)
-              {
-                ::std::cout << ::std::endl;
-                i = 0; 
-              }
-            i++;
+            threads.push_back(
+                ::std::thread(messenger, community, ::std::ref(manager)));
+            ::std::this_thread::sleep_for(
+                ::std::chrono::milliseconds(
+                    ::std::stoi(interval)));
           }
       }
     catch (::std::exception &ex)

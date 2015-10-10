@@ -10,6 +10,7 @@
 #include <vector>
 #include <algorithm>
 #include <memory>
+#include <iterator>
 
 typedef unsigned char BYTE;
 
@@ -39,6 +40,7 @@ template<
       _IntegerT num)
     {
       BYTE *ptr_n = reinterpret_cast<BYTE *>(&num);
+      ::std::reverse(ptr_n, ptr_n + sizeof(_IntegerT));
       return ::std::vector<BYTE>(ptr_n, ptr_n + sizeof(_IntegerT));
     }
 
@@ -49,12 +51,10 @@ template<
     {
       ::std::string ret;
       ret.reserve(binary.size() * 2);
-      for (auto rbegin = ::std::rbegin(binary);
-           rbegin != ::std::rend(binary);
-           ++rbegin)
+      for (auto &bin : binary)
         {
-          ret.push_back(BINARY_DECODE_STRING[(*rbegin >> 4) & 0xF]);
-          ret.push_back(BINARY_DECODE_STRING[*rbegin & 0xF]);
+          ret.push_back(BINARY_DECODE_STRING[(bin >> 4) & 0xF]);
+          ret.push_back(BINARY_DECODE_STRING[bin & 0xF]);
         }
       return ret;
     }

@@ -12,9 +12,9 @@
 LD          = ${CXX}
 
 # Flags
-CXXFLAGS    = -std=c++14 -Wall -Wextra -pedantic -g
+CXXFLAGS    = -std=c++11 -Wall -Wextra -pedantic -g
 LDFLAGS     =
-LDLIBS      =
+LDLIBS      = -pthread
 
 # Target(s)
 TARGET      = isaSnmpIfLog
@@ -22,24 +22,29 @@ BIN         = ${PREFIX}/bin
 INSTALLED   = ${BIN}/isaSnmpIfLog
 
 # Source files
-SOURCE      = source/main.cxx source/params.cxx source/packet.cxx
+SOURCE      = source/main.cxx source/params.cxx source/packet.cxx source/manager.cxx
+INCLUDE     = include/packet.hxx include/params.hxx include/bitmap.hxx \
+			  include/pdu.hxx include/pdu_bindings.hxx include/manager.hxx
 
 # This makefile for packaging
 MAKEFILE    = Makefile
+
+# This is required for CLion and also can check requirements
+CMAKELISTS  = CMakeLists.txt
 
 # Tarball to be delivered
 TARBALL     = xcibul10.tar
 
 # Build Directory - where object files will be
 BUILD       = build
-OBJECTS     = ${BUILD}/main.o ${BUILD}/params.o ${BUILD}/packet.o
+OBJECTS     = ${BUILD}/main.o ${BUILD}/params.o ${BUILD}/packet.o ${BUILD}/manager.o
 
 # Macros with params:
 #   first   -> target
 #   second  -> source
 COMPILE.cxx = ${CXX} ${CXXFLAGS} -c -o
 RM.rf       = -rm -rf
-TAR.cf      = tar cf
+TAR.cfv     = tar cfv
 INSTALL.x   = install -m +x
 
 isaSnmpIfLog: ${BUILD} ${OBJECTS}
@@ -59,8 +64,13 @@ ${BUILD}/params.o: source/params.cxx include/params.hxx
 ${BUILD}/packet.o: source/packet.cxx include/packet.hxx include/bitmap.hxx
 	${COMPILE.cxx} ${BUILD}/packet.o source/packet.cxx
 
+${BUILD}/manager.o: source/manager.cxx include/manager.hxx include/packet.hxx\
+					include/pdu.hxx include/pdu_bindings.hxx
+	${COMPILE.cxx} ${BUILD}/manager.o source/manager.cxx
+
 ${BUILD}/main.o: source/main.cxx include/packet.hxx include/params.hxx \
-				include/bitmap.hxx  include/pdu.hxx  include/pdu_bindings.hxx
+				 include/bitmap.hxx  include/pdu.hxx  include/pdu_bindings.hxx \
+				 include/manager.hxx
 	${COMPILE.cxx} ${BUILD}/main.o source/main.cxx
 
 .PHONY: clean arch tar uninstall test
@@ -75,5 +85,5 @@ uninstall:
 test:
 	./test.sh -v
 
-${TARBALL}: ${SOURCE} ${MAKEFILE}
-	${TAR.cf} ${TARBALL} ${SOURCE} ${MAKEFILE}
+${TARBALL}: ${SOURCE} ${MAKEFILE} ${CMAKELISTS} ${INCLUDE}
+	${TAR.cfv} ${TARBALL} ${SOURCE} ${MAKEFILE} ${CMAKELISTS} ${INCLUDE}
