@@ -7,88 +7,128 @@
 
 #pragma once
 
+#include <unordered_map>
 #include "bitmap.hxx"
 
 
 namespace Packet
   {
-    namespace PDU
-      {
-        struct SNMPv2 :
-            public BitMap
-          {
-            virtual ::std::string getStrRepre() override;
+      namespace PDU
+        {
+            struct Type;
 
-            virtual ::std::vector<BYTE> getBinary();
-
-            void push_back(BitMap *dat);
-
-            virtual ~SNMPv2();
-          private:
-            ::std::vector<::std::unique_ptr<BitMap>> data;
-          };
-
-        struct Type :
-            public BitMap
-          {
-            enum TypeE : BYTE
+            struct SNMPv2 :
+                public BitMap
               {
-                GET_REQ, GET_NEXT_REQ, GET_RESP, SET_RESP,
-                OBSOLETE, GET_BULK_REQ, INFORM_REQ, TRAP
+                SNMPv2(Type *_T);
+
+                virtual ::std::string getStrRepre() override;
+
+                virtual ::std::vector<BYTE> getBinary() override;
+
+                void push_back(BitMap *dat);
+
+                virtual ~SNMPv2();
+
+            private:
+                Type *__type;
+                ::std::vector<::std::unique_ptr<BitMap>> data;
               };
 
-            Type(TypeE type);
+            struct Type :
+                public BitMap
+              {
+                enum TypeE :
+                    BYTE
+                  {
+                    GET_REQ = 0
+                    , GET_NEXT_REQ
+                    , GET_RESP
+                    , SET_REQ
+                  };
 
-            virtual ::std::string getStrRepre() override;
+                Type(TypeE type);
 
-            virtual ::std::vector<BYTE> getBinary();
+                virtual ::std::string getStrRepre() override;
 
-          private:
-            TypeE _type;
-            const ::std::vector<::std::string> _type_dec = {
-              "getRequest", "GetNextRequest", "GetResponse",
-              "SetResponse", "obsolete", "GetBulkRequest",
-              "InformRequest", "SNMPv2-TRAP"
-            };
-          };
+                virtual ::std::vector<BYTE> getBinary() override;
 
-        struct RequestID :
-            public BitMap
-          {
-            RequestID(uint32_t id);
+            public:
+                static ::std::vector<BYTE> _type_byte;
+                static ::std::unordered_map<BYTE, TypeE> _byte_type;
+            private:
+                TypeE _type;
+                static ::std::vector<::std::string> _type_dec;
+              };
 
-            virtual ::std::string getStrRepre() override;
+            struct RequestID :
+                public BitMap
+              {
+                RequestID(uint32_t id);
 
-            virtual ::std::vector<BYTE> getBinary();
+                virtual ::std::string getStrRepre() override;
 
-          private:
-            uint32_t _id;
-          };
+                virtual ::std::vector<BYTE> getBinary() override;
 
-        struct NonRepeaters :
-            public BitMap
-          {
-            NonRepeaters(uint32_t rep);
+            private:
+                uint32_t _id;
+              };
 
-            virtual ::std::string getStrRepre() override;
+            struct Error :
+                public BitMap
+              {
+                enum ErrorsE : BYTE
+                  {
+                    noError = 0
+                    , tooBig = 1
+                    , noSuchName = 2
+                    , badValue = 3
+                    , readOnly = 4
+                    , genErr = 5
+                    , noAccess = 6
+                    , wrongType = 7
+                    , wrongLength = 8
+                    , wrongEncoding = 9
+                    , wrongValue = 10
+                    , noCreation = 11
+                    , inconsistentValue = 12
+                    , resourceUnavailable = 13
+                    , commitFailed = 14
+                    , undoFailed = 15
+                    , authorizationError = 16
+                    , notWritable = 17
+                    , inconsistentName = 18
+                  };
 
-            virtual ::std::vector<BYTE> getBinary();
+                Error(ErrorsE rep);
 
-          private:
-            uint32_t _reps;
-          };
+                virtual ::std::string getStrRepre() override;
 
-          struct MaxRepeaters :
-            public BitMap
-          {
-            MaxRepeaters(uint32_t rep);
+                virtual ::std::vector<BYTE> getBinary() override;
 
-            virtual ::std::string getStrRepre() override;
+            private:
+                ErrorsE _err_code = noError;
+                const ::std::vector<::std::string> error_table = {
+                    "No error", "Too big", "No such name", "Bad value",
+                    "Read only", "Generation error", "No access", "Wrong type",
+                    "Wrong length", "Wrong encoding", "Wrong value",
+                    "No creation", "Inconsistent value", "Resource unavailable",
+                    "Commit failed", "Undo failed", "Authorization error",
+                    "Not writable", "Inconsistent name"
+                };
+              };
 
-            virtual ::std::vector<BYTE> getBinary();
+            struct ErrorIndex :
+                public BitMap
+              {
+                ErrorIndex(uint32_t rep);
 
-          private:
-            uint32_t _reps;
-          };
-      }
+                virtual ::std::string getStrRepre() override;
+
+                virtual ::std::vector<BYTE> getBinary() override;
+
+            private:
+                uint32_t _index;
+              };
+        }
   }

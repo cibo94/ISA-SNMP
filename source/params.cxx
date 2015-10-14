@@ -67,7 +67,7 @@ void ::Params::Parse(
       {
         ::std::cerr << "Only one unbind program argument value is allowed!"
                     << ::std::endl;
-        exit(0);
+        exit(1);
       }
     if (optind < argc)
       _arg_map[0] = argv[optind];

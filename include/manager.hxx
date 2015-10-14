@@ -49,15 +49,18 @@ protected:
 
     ::Packet::SNMPv2 *__retrieve(
         ::sockaddr_in sockaddr,
-        ::socketT s);
+        ::socketT s,
+        ::std::string *obj_id);
 
     ::Packet::SNMPv2 *__create_pck(
         ::std::string ver,
         ::std::string cmn,
         ::Packet::PDU::Type::TypeE pdu_t,
         ::uint32_t req_id,
-        ::uint32_t non_rep,
-        ::uint32_t max_rep);
+        ::Packet::PDU::Error::ErrorsE err,
+        ::uint32_t err_idx,
+        ::std::string obj_id,
+        ::std::string obj_value);
 
     virtual ~__impl_manager();
   };
@@ -80,12 +83,16 @@ public:
         ::std::string Community,
         ::Packet::PDU::Type::TypeE PDUType,
         ::uint32_t RequestID,
-        ::uint32_t NonRepeaters,
-        ::uint32_t MaxRepeaters)
+        ::Packet::PDU::Error::ErrorsE Error,
+        ::uint32_t ErrorIndex,
+        ::std::string *ObjectId,
+        ::std::string ObjectValue)
       {
+        _obj_id = ObjectId;
         ::__impl_manager::__send(
             ::__impl_manager::__create_pck(
-                "2", Community, PDUType, RequestID, NonRepeaters, MaxRepeaters),
+                "1", Community, PDUType, RequestID, Error,
+                ErrorIndex, *ObjectId, ObjectValue),
             _sin, _socket);
         return *this;
       }
@@ -93,14 +100,14 @@ public:
     ::std::unique_ptr<::Packet::SNMPv2> retrieve()
       {
         return ::std::unique_ptr<::Packet::SNMPv2>(
-            ::__impl_manager::__retrieve(_sin, _socket));
+            ::__impl_manager::__retrieve(_sin, _socket, _obj_id));
       }
 
     virtual ~Manager()
       { MAN_ASSERT(close(_socket) < 0, "Failed to close socket"); }
 
 private:
-
+    ::std::string *_obj_id;
     struct ::sockaddr_in _sin;
     struct ::hostent *_hostent;
     socketT _socket;

@@ -22,9 +22,11 @@ BIN         = ${PREFIX}/bin
 INSTALLED   = ${BIN}/isaSnmpIfLog
 
 # Source files
-SOURCE      = source/main.cxx source/params.cxx source/packet.cxx source/manager.cxx
+SOURCE      = source/main.cxx source/params.cxx source/packet.cxx \
+			  source/manager.cxx source/log.cxx
 INCLUDE     = include/packet.hxx include/params.hxx include/bitmap.hxx \
-			  include/pdu.hxx include/pdu_bindings.hxx include/manager.hxx
+			  include/pdu.hxx include/pdu_bindings.hxx include/manager.hxx \
+			  include/log.hxx
 
 # This makefile for packaging
 MAKEFILE    = Makefile
@@ -37,7 +39,8 @@ TARBALL     = xcibul10.tar
 
 # Build Directory - where object files will be
 BUILD       = build
-OBJECTS     = ${BUILD}/main.o ${BUILD}/params.o ${BUILD}/packet.o ${BUILD}/manager.o
+OBJECTS     = ${BUILD}/main.o ${BUILD}/params.o ${BUILD}/packet.o \
+			  ${BUILD}/manager.o ${BUILD}/log.o
 
 # Macros with params:
 #   first   -> target
@@ -58,19 +61,23 @@ install: ${TARGET}
 ${BUILD}:
 	[ -d ${BUILD} ] || mkdir ${BUILD}
 
-${BUILD}/params.o: source/params.cxx include/params.hxx
+${BUILD}/params.o:	source/params.cxx include/params.hxx include/log.hxx
 	${COMPILE.cxx} ${BUILD}/params.o source/params.cxx
 
-${BUILD}/packet.o: source/packet.cxx include/packet.hxx include/bitmap.hxx
+${BUILD}/packet.o:	source/packet.cxx include/packet.hxx include/bitmap.hxx \
+					include/log.hxx
 	${COMPILE.cxx} ${BUILD}/packet.o source/packet.cxx
 
-${BUILD}/manager.o: source/manager.cxx include/manager.hxx include/packet.hxx\
-					include/pdu.hxx include/pdu_bindings.hxx
+${BUILD}/manager.o:	source/manager.cxx include/manager.hxx include/packet.hxx \
+					include/pdu.hxx include/pdu_bindings.hxx include/log.hxx
 	${COMPILE.cxx} ${BUILD}/manager.o source/manager.cxx
 
-${BUILD}/main.o: source/main.cxx include/packet.hxx include/params.hxx \
-				 include/bitmap.hxx  include/pdu.hxx  include/pdu_bindings.hxx \
-				 include/manager.hxx
+${BUILD}/log.o:		source/log.cxx include/log.hxx
+	${COMPILE.cxx} ${BUILD}/log.o source/log.cxx
+
+${BUILD}/main.o:	source/main.cxx include/packet.hxx include/params.hxx \
+					include/bitmap.hxx include/pdu.hxx include/log.hxx \
+					include/manager.hxx include/pdu_bindings.hxx
 	${COMPILE.cxx} ${BUILD}/main.o source/main.cxx
 
 .PHONY: clean arch tar uninstall test

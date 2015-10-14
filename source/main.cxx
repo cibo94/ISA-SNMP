@@ -11,6 +11,7 @@
 #include "../include/packet.hxx"
 #include "../include/pdu.hxx"
 #include "../include/manager.hxx"
+#include "../include/log.hxx"
 
 
 #define HELP_TEXT \
@@ -33,7 +34,8 @@
 bool is_number(const std::string& s)
   {
     return !s.empty() && std::find_if(
-        s.begin(), s.end(), [](char c) { return !std::isdigit(c); }) == s.end();
+        s.begin(), s.end(),
+        [](char c) { return !std::isdigit(c); }) == s.end();
   }
 
 ::std::string pretty_hex_bin(::std::string str)
@@ -43,6 +45,8 @@ bool is_number(const std::string& s)
     for (auto &ch: str)
       {
         out.push_back(ch);
+        if (!(i % 2))
+          out.push_back(' ');
         if (i == 8)
           {
             out += "\n";
@@ -53,17 +57,55 @@ bool is_number(const std::string& s)
     return out;
   }
 
-void messenger(::std::string community, ::Manager &manager)
+void messenger(
+    ::std::string community,
+    ::Manager &manager)
   {
-    auto snmp = manager.send(
-        community, ::Packet::PDU::Type::GET_BULK_REQ,
-        1, 1, 1).retrieve();
-    if (snmp == nullptr)
-      throw ::std::runtime_error(
-          "Bad response from server!");
-    ::std::cout << snmp->getStrRepre() << ::std::endl <<
-    ::pretty_hex_bin(::BinToStr(snmp->getBinary())) <<
-    ::std::endl;
+    using namespace ::Packet::PDU;
+
+    ::std::string first = "1.3.6.1.2.1.2.2";
+    ::std::string obj = first;
+    /* WTF - after exception logs were multiplied */
+    ::std::string repz;
+    ::std::vector<::std::string> rets;
+    ::std::string last_base_obj = first;
+    int i = 0;
+    while (true)
+      {
+        try
+          {
+            auto snmp = manager.send(
+                community, ::Packet::PDU::Type::GET_NEXT_REQ, 0x42,
+                Error::noError, 0, &obj, "").retrieve();
+            if (repz == obj)
+              continue;
+            if (obj.find(first) == obj.npos)
+              break;
+            if (snmp == nullptr)
+              throw ::std::runtime_error(
+                  "No response from server!");
+
+            auto toks = StrSplit(obj, '.');
+            ::std::string base_obj = StrJoin(toks.begin(), toks.end() - 1, '.');
+            if (base_obj != last_base_obj)
+              {
+                i = 0;
+                last_base_obj = base_obj;
+              }
+
+            if (rets.size() <= i)
+              rets.resize((size_t) i + 1);
+
+            rets[i] += " " + snmp->getStrRepre() + ";";
+            repz = obj;
+            i++;
+          }
+        catch (::std::exception &ex)
+          {
+            ::logging::error() << ex.what();
+          }
+      }
+    ::logging() << StrJoin(rets.begin(), rets.end(), ' ');
   }
 
 ::std::vector<::std::thread> threads;
@@ -97,13 +139,18 @@ int main(
 
         /* Main loop for sending and retrieving SNMP messages */
         ::Manager manager(address, PORT);
+        auto inter = ::std::stoull(interval);
         while (1)
           {
-            threads.push_back(
-                ::std::thread(messenger, community, ::std::ref(manager)));
-            ::std::this_thread::sleep_for(
-                ::std::chrono::milliseconds(
-                    ::std::stoi(interval)));
+            typedef std::chrono::system_clock Clock;
+            typedef std::chrono::milliseconds milliseconds;
+            Clock::time_point t0 = Clock::now();
+            ::messenger(community, manager);
+            Clock::time_point t1 = Clock::now();
+            auto ms = std::chrono::duration_cast<milliseconds>(t1 - t0).count();
+            if (ms < inter)
+              ::std::this_thread::sleep_for(
+                  ::std::chrono::milliseconds(inter - ms));
           }
       }
     catch (::std::exception &ex)

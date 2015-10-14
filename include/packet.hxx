@@ -9,6 +9,7 @@
 
 #include <bitset>
 #include "bitmap.hxx"
+#include "pdu.hxx"
 
 
 namespace Packet
@@ -16,14 +17,12 @@ namespace Packet
     struct SNMPv2 :
         public BitMap
       {
-        SNMPv2();
-        
         virtual ::std::string getStrRepre() override;
 
         virtual ::std::vector<BYTE> getBinary();
 
         void push_back(BitMap *dat);
-        
+
         virtual ~SNMPv2();
       private:
         ::std::vector<::std::unique_ptr<BitMap>> data;

@@ -12,54 +12,79 @@
 
 namespace Packet
   {
-    namespace PDU
-      {
-        namespace Bindings
-          {
-            struct Bind :
-                public BitMap
+      namespace PDU
+        {
+            namespace Bindings
               {
-                Bind(BitMap *obj_name,
-                     BitMap *obj_value);
 
-                virtual ::std::string getStrRepre() override;
+                  struct BindingList :
+                      public BitMap
+                    {
+                      virtual ::std::string getStrRepre() override;
 
-                virtual ::std::vector<BYTE> getBinary();
-                
-                virtual ~Bind();
-              private:
-                ::std::unique_ptr<BitMap>_obj_name;
-                ::std::unique_ptr<BitMap>_obj_value;
-              };
+                      virtual ::std::vector<BYTE> getBinary();
 
-              struct ObjectName :
-                public BitMap
-              {
-                ObjectName(::std::string name);
+                      void push_back(BitMap *dat);
 
-                virtual ::std::string getStrRepre();
+                      virtual ~BindingList();
 
-                virtual ::std::vector<BYTE> getBinary();
+                  private:
+                      ::std::vector<::std::unique_ptr<BitMap>> objs;
+                    };
 
-              private:
-                ::std::string _name;
-              };
+                  struct Bind :
+                      public BitMap
+                    {
+                      Bind(
+                          BitMap *obj_name,
+                          BitMap *obj_value);
 
-            struct ObjectValue :
-                public BitMap
-              {
-                ObjectValue();
+                      virtual ::std::string getStrRepre() override;
 
-                ObjectValue(::std::string value);
+                      virtual ::std::vector<BYTE> getBinary();
 
-                virtual ::std::string getStrRepre() override;
+                      virtual ~Bind();
 
-                virtual ::std::vector<BYTE> getBinary();
+                  private:
+                      ::std::unique_ptr<BitMap> _obj_name;
+                      ::std::unique_ptr<BitMap> _obj_value;
+                    };
 
-              private:
-                ::std::string _value;
-                bool not_set;
-              };
-          }
-      }
+                  struct ObjectName :
+                      public BitMap
+                    {
+                      ObjectName(::std::string name);
+
+                      virtual ::std::string getStrRepre();
+
+                      virtual ::std::vector<BYTE> getBinary();
+
+                      static ::std::unordered_map<
+                          ::std::string, ::std::string> _decoded;
+
+                      ::std::string _name;
+                    };
+
+                  struct ObjectValue :
+                      public BitMap
+                    {
+                      ObjectValue(::std::string value);
+
+                      ObjectValue(int value);
+
+                      ObjectValue();
+
+                      virtual ::std::string getStrRepre() override;
+
+                      virtual ::std::vector<BYTE> getBinary();
+
+                  private:
+                      ::std::string _value_s;
+                      int _value_i;
+
+                      ::std::vector<BYTE> _value_b;
+                      ::DataTypesE type;
+                    };
+              }
+        }
   }
