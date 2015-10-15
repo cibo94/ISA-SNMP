@@ -76,7 +76,7 @@ void messenger(
           {
             auto snmp = manager.send(
                 community, ::Packet::PDU::Type::GET_NEXT_REQ, 0x42,
-                Error::noError, 0, &obj, "").retrieve();
+                Error::noError, 0, &obj, {}, ::DataTypesE::NULL_T).retrieve();
             if (repz == obj)
               continue;
             if (obj.find(first) == obj.npos)
@@ -84,6 +84,8 @@ void messenger(
             if (snmp == nullptr)
               throw ::std::runtime_error(
                   "No response from server!");
+
+            //::logging::log() << snmp->getStrRepre();
 
             auto toks = StrSplit(obj, '.');
             ::std::string base_obj = StrJoin(toks.begin(), toks.end() - 1, '.');
@@ -93,7 +95,7 @@ void messenger(
                 last_base_obj = base_obj;
               }
 
-            if (rets.size() <= i)
+            if (rets.size() <= (unsigned long)i)
               rets.resize((size_t) i + 1);
 
             rets[i] += " " + snmp->getStrRepre() + ";";
@@ -140,17 +142,12 @@ int main(
         /* Main loop for sending and retrieving SNMP messages */
         ::Manager manager(address, PORT);
         auto inter = ::std::stoull(interval);
+        ::std::vector<::std::thread> threads;
         while (1)
           {
-            typedef std::chrono::system_clock Clock;
-            typedef std::chrono::milliseconds milliseconds;
-            Clock::time_point t0 = Clock::now();
             ::messenger(community, manager);
-            Clock::time_point t1 = Clock::now();
-            auto ms = std::chrono::duration_cast<milliseconds>(t1 - t0).count();
-            if (ms < inter)
-              ::std::this_thread::sleep_for(
-                  ::std::chrono::milliseconds(inter - ms));
+            ::std::this_thread::sleep_for(
+                ::std::chrono::milliseconds(inter));
           }
       }
     catch (::std::exception &ex)

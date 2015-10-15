@@ -26,11 +26,11 @@ typedef int socketT;
 }
 
 #define MAN_ASSERT(cond, msg) \
-  { \
+  do { \
     if (cond) \
       throw ::std::runtime_error( \
           ::std::string("Assertion failed: '") + #cond + "'!\n" + msg + "\n"); \
-  }
+  } while (0)
 
 class __impl_manager
   {
@@ -60,7 +60,8 @@ protected:
         ::Packet::PDU::Error::ErrorsE err,
         ::uint32_t err_idx,
         ::std::string obj_id,
-        ::std::string obj_value);
+        BinaryVectorT obj_value,
+        ::DataTypesE obj_type);
 
     virtual ~__impl_manager();
   };
@@ -86,17 +87,19 @@ public:
         ::Packet::PDU::Error::ErrorsE Error,
         ::uint32_t ErrorIndex,
         ::std::string *ObjectId,
-        ::std::string ObjectValue)
+        BinaryVectorT ObjectValue,
+        ::DataTypesE ObjectType)
       {
         _obj_id = ObjectId;
         ::__impl_manager::__send(
             ::__impl_manager::__create_pck(
                 "1", Community, PDUType, RequestID, Error,
-                ErrorIndex, *ObjectId, ObjectValue),
+                ErrorIndex, *ObjectId, ObjectValue, ObjectType),
             _sin, _socket);
         return *this;
       }
 
+    /** Returns object filled with SNMPv2 response data */
     ::std::unique_ptr<::Packet::SNMPv2> retrieve()
       {
         return ::std::unique_ptr<::Packet::SNMPv2>(
@@ -104,7 +107,7 @@ public:
       }
 
     virtual ~Manager()
-      { MAN_ASSERT(close(_socket) < 0, "Failed to close socket"); }
+      {  }
 
 private:
     ::std::string *_obj_id;

@@ -15,69 +15,96 @@ namespace Packet
   {
       namespace PDU
         {
-            struct Type;
-
+            /** Is bitmap (e.g. map/vector of bits) with string representation
+             * This does not contains any real bits
+             */
             struct SNMPv2 :
                 public BitMap
               {
-                SNMPv2(Type *_T);
+                /** Requires appropriate type field */
+                SNMPv2(BitMap *_T);
 
                 virtual ::std::string getStrRepre() override;
 
-                virtual ::std::vector<BYTE> getBinary() override;
+                virtual BinaryVectorT getBinary() override;
 
+                /** Pushes bit-data in form of bitmap (like version or like that) */
                 void push_back(BitMap *dat);
 
                 virtual ~SNMPv2();
 
             private:
-                Type *__type;
+                /** Version of type of SMNPv2 packet (e.g. GET_REQ)*/
+                BitMap *__type;
+
+                /** Actual data */
                 ::std::vector<::std::unique_ptr<BitMap>> data;
               };
 
             struct Type :
                 public BitMap
               {
+                /** Types of SNMPv2 packet */
                 enum TypeE :
-                    BYTE
+                    ByteT
                   {
+                    /** Get request will send request to agent and he will
+                     * return actual data about requesting object
+                     */
                     GET_REQ = 0
+                    /** Get next request will send request for object
+                     * and gets info about next object
+                     */
                     , GET_NEXT_REQ
+                    /** Is type of replied message from agent */
                     , GET_RESP
+                    /** ??? */
                     , SET_REQ
                   };
 
+                /** Represents binary representation of SNMPv2 packet type
+                 * @see TypeE
+                 */
                 Type(TypeE type);
 
                 virtual ::std::string getStrRepre() override;
 
-                virtual ::std::vector<BYTE> getBinary() override;
+                virtual BinaryVectorT getBinary() override;
 
+                virtual ~Type();
             public:
-                static ::std::vector<BYTE> _type_byte;
-                static ::std::unordered_map<BYTE, TypeE> _byte_type;
+                /** Lookup table TypeE -> Binary */
+                static BinaryVectorT _type_byte;
+
+                /** Lookup table vector of Binary -> TypeE */
+                static ::std::unordered_map<ByteT, TypeE> _byte_type;
             private:
                 TypeE _type;
-                static ::std::vector<::std::string> _type_dec;
               };
 
+            /** Request ID of SNMPv2 packet - transaction */
             struct RequestID :
                 public BitMap
               {
+                /** needs to be defined */
                 RequestID(uint32_t id);
 
                 virtual ::std::string getStrRepre() override;
 
-                virtual ::std::vector<BYTE> getBinary() override;
+                virtual BinaryVectorT getBinary() override;
 
+                virtual ~RequestID();
             private:
                 uint32_t _id;
               };
 
+            /** Describes Errors in SNMPv2 requests/responses */
             struct Error :
                 public BitMap
               {
-                enum ErrorsE : BYTE
+                /** Errors enumerator - not used really (maybe later) */
+                enum ErrorsE :
+                    ByteT
                   {
                     noError = 0
                     , tooBig = 1
@@ -100,14 +127,19 @@ namespace Packet
                     , inconsistentName = 18
                   };
 
+                /** @see ErrorsE */
                 Error(ErrorsE rep);
 
                 virtual ::std::string getStrRepre() override;
 
-                virtual ::std::vector<BYTE> getBinary() override;
+                virtual BinaryVectorT getBinary() override;
 
+                virtual ~Error();
             private:
+                /** Default is no error flag */
                 ErrorsE _err_code = noError;
+
+                /** Lookup table @see ErrorsE */
                 const ::std::vector<::std::string> error_table = {
                     "No error", "Too big", "No such name", "Bad value",
                     "Read only", "Generation error", "No access", "Wrong type",
@@ -118,16 +150,20 @@ namespace Packet
                 };
               };
 
+            /** Index of which error occurred */
             struct ErrorIndex :
                 public BitMap
               {
+                /** needs to be defined @see Error */
                 ErrorIndex(uint32_t rep);
 
                 virtual ::std::string getStrRepre() override;
 
-                virtual ::std::vector<BYTE> getBinary() override;
+                virtual BinaryVectorT getBinary() override;
 
+                virtual ~ErrorIndex();
             private:
+                /** Default is no position */
                 uint32_t _index;
               };
         }

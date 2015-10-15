@@ -12,7 +12,7 @@ class logging
 public:
     logging(
         std::ostream &out = ::std::cout,
-        ::std::string stamp = ::std::string("[") + get_stamp() + "] ");
+        ::std::string stamp = get_stamp() + "; ");
 
     static logging warn();
 

@@ -35,12 +35,13 @@ namespace __crt_bnd_lst
           }
   }
 
-::Packet::PDU::Bindings::Bind *create_bind(
+::Packet::PDU::Bindings::Object *create_bind(
     ::std::string obj_id,
-    ::std::string obj_value)
+    BinaryVectorT obj_value,
+    ::DataTypesE obj_type)
   {
     using namespace ::Packet::PDU::Bindings;
-    return new Bind(new ObjectName(obj_id), new ObjectValue(obj_value));
+    return new Object(obj_id, obj_value, obj_type);
   }
 
 template<
@@ -94,7 +95,9 @@ template<
     struct ::sockaddr_in &_sin,
     struct ::hostent *&_hostent)
   {
-    MAN_ASSERT((_socket = ::socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0,
+    MAN_ASSERT(
+        (_socket = ::socket(
+            PF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0,
                "Failed to create socket");
     ::memset((char *) &_sin, 0, sizeof(_sin));
     _sin.sin_family = AF_INET;
@@ -130,86 +133,40 @@ namespace DECODE
               {
                   using namespace ::Packet::PDU::Bindings;
 
-                  ObjectValue *obj_value(
-                      ::std::vector<BYTE> &msg)
+                  BinaryVectorT obj_value(
+                      BinaryVectorT &msg,
+                      ::DataTypesE &type)
                     {
-                      ::DataTypesE type = (::DataTypesE) msg[0];
+                      type = (::DataTypesE) msg[0];
                       size_t size = msg[1];
-                      ObjectValue *obj = nullptr;
-                      switch(type)
-                        {
-                          case INT:
-                            {
-                              int ival = 0;
-                              for (auto ite = msg.begin() + 2;
-                                   ite != msg.begin() + 2 + size;
-                                   ++ite)
-                                ival = (ival << 8) | *ite;
-                              obj = new ObjectValue(ival);
-                            }
-                            break;
-                          case OCTET_STR:
-                            obj = new ObjectValue(
-                                ::std::string(
-                                    msg.begin() + 2, msg.begin() + 2 + size));
-                            break;
-                          case NULL_T:
-                            obj = new ObjectValue();
-                            break;
-                          default:
-                            ::std::runtime_error("Wierd stuff happened!");
-                            break;
-                        }
+                      BinaryVectorT ret(
+                          msg.begin() + 2, msg.begin() + size + 2);
                       msg.erase(msg.begin(), msg.begin() + size + 2);
-                      return obj;
+                      return ret;
                     }
 
-                  ObjectName *obj_name(
-                      ::std::vector<BYTE> &msg)
+                  ::std::string obj_name(
+                      BinaryVectorT &msg)
                     {
                       size_t size = msg[1];
-                      ::std::vector<uint32_t> data {
-                          (uint32_t)(msg[2]/40), (uint32_t)(msg[2]%40)
-                      };
-                      bool was_m_b = false;
-                      for (auto ite = msg.begin() + 3;
-                           ite != msg.begin() + 2 + size;
-                           ++ite)
-                        {
-                          if ((*ite) & 0x80)
-                            {
-                              if (!was_m_b) data.push_back(0);
-                              data.back() <<= 7;
-                              data.back() |= (*ite) & 0x7F;
-                              was_m_b = true;
-                            }
-                          else
-                            {
-                              data.push_back(*ite);
-                              was_m_b = false;
-                            }
-                        }
-                      ::std::string str_vec;
-                      auto bin = data.begin();
-                      for (;
-                            bin != data.end() - 1;
-                           ++bin)
-                        str_vec += ::std::to_string(*bin) + ".";
-                      str_vec += ::std::to_string(*bin);
-                      *s_obj_id = str_vec;
+                      BinaryVectorT temp(
+                          msg.begin() + 2, msg.begin() + size + 2);
                       msg.erase(msg.begin(), msg.begin() + size + 2);
-                      return new ObjectName(str_vec);
+                      *s_obj_id = ::decodeObjectName(temp);
+                      return *s_obj_id;
                     }
 
-                  Bind *bind(
-                      ::std::vector<BYTE> &msg)
+                  Object *bind(
+                      BinaryVectorT &msg)
                     {
                       msg.erase(msg.begin(), msg.begin() + 2);
-                      return new Bind(obj_name(msg), obj_value(msg));
+                      ::DataTypesE type;
+                      return new Object(
+                          obj_name(msg), obj_value(msg, type), type);
                     }
 
                   BindingList * decode(
-                      ::std::vector<BYTE> &msg)
+                      BinaryVectorT &msg)
                     {
                       msg.erase(msg.begin(), msg.begin() + 2);
                       BindingList *bindings = new BindingList();
@@ -221,29 +178,29 @@ namespace DECODE
             using namespace ::Packet::PDU;
 
             ErrorIndex *err_idx(
-                ::std::vector<BYTE> &msg)
+                BinaryVectorT &msg)
               {
                 size_t size = msg[1];
-                BYTE indx = msg[size + 1];
+                ByteT indx = msg[size + 1];
                 msg.erase(msg.begin(), msg.begin() + 2 + size);
                 return new ErrorIndex(indx);
               }
 
             Error *error(
-                ::std::vector<BYTE> &msg)
+                BinaryVectorT &msg)
               {
                 size_t size = msg[1];
-                BYTE etype = msg[size + 1];
+                ByteT etype = msg[size + 1];
                 msg.erase(msg.begin(), msg.begin() + 2 + size);
                 return new Error((Error::ErrorsE) etype);
               }
 
             RequestID *request(
-                ::std::vector<BYTE> &msg)
+                BinaryVectorT &msg)
               {
                 size_t size = msg[1];
                 /// !!!!!!!!!!! TODO: rewrite this!
-                ::std::vector<BYTE> req(
+                BinaryVectorT req(
                     msg.begin() + 2, msg.begin() + size + 2);
                 uint32_t ret = 0;
                 for (auto d: req)
@@ -253,7 +210,7 @@ namespace DECODE
               }
 
             SNMPv2 *decode(
-                ::std::vector<BYTE> &msg)
+                BinaryVectorT &msg)
               {
                 msg.erase(msg.begin(), msg.begin() + 2);
                 SNMPv2 *pdu = new SNMPv2(new Type(Type::_byte_type[msg[2]]));
@@ -267,7 +224,7 @@ namespace DECODE
       using namespace ::Packet;
 
       CommunityString *community(
-          ::std::vector<BYTE> &msg)
+          BinaryVectorT &msg)
         {
           size_t size = msg[1];
           ::std::string ret(msg.begin() + 2, msg.begin() + 2 + size);
@@ -276,7 +233,7 @@ namespace DECODE
         }
 
       Version *version(
-          ::std::vector<BYTE> &msg)
+          BinaryVectorT &msg)
         {
           size_t size = msg[1];
           ::std::string ver = ::std::to_string(msg[size + 1]);
@@ -284,8 +241,12 @@ namespace DECODE
           return new Version(ver);
         }
 
+      /**
+       * @brief Decode message - SNMPv2 object representation will be returned
+       * @param msg raw data
+       */
       SNMPv2 *decode(
-          ::std::vector<BYTE> msg)
+          BinaryVectorT msg)
         {
           if (msg.empty()) return nullptr;
           SNMPv2 *snmp = new SNMPv2();
@@ -302,11 +263,11 @@ namespace DECODE
  * @param s socket
  * @return vector of read bytes
  */
-::std::vector<BYTE> readall(
+BinaryVectorT readall(
     ::socketT s)
   {
-    ::std::vector<BYTE> message;
-    BYTE *buff = new BYTE[128];
+    BinaryVectorT message;
+    ByteT *buff = new ByteT[128];
     ssize_t read;
     auto flags = fcntl(s, F_GETFL, 0);
     fcntl(s, F_SETFL, flags | O_NONBLOCK);
@@ -314,14 +275,15 @@ namespace DECODE
     /*
      * Read from socket until there is nothing to read.
      */
-    int counter = 100;
+    int counter = 500;
     while ((read = ::recv(s, (void *) buff, 128, 0)) >= 128 || read < 0)
       {
         if (read < 0)
+          /* Non blocking solution requires to try again after some time */
           if (((errno == EAGAIN) || (errno == EWOULDBLOCK)) && counter)
             {
               ::std::this_thread::sleep_for(
-                  ::std::chrono::milliseconds(20));
+                  ::std::chrono::milliseconds(5));
               --counter;
             }
           else
@@ -357,14 +319,15 @@ namespace DECODE
     ::Packet::PDU::Error::ErrorsE err,
     ::uint32_t err_idx,
     ::std::string obj_id,
-    ::std::string obj_value)
+    BinaryVectorT obj_value,
+    ::DataTypesE obj_type)
   {
     return ::create_pck(
         ::create_snmp(ver, cmn),
         ::create_pdu(
             pdu_t, req_id, err, err_idx,
             ::create_binding_list(
-                ::create_bind(obj_id, obj_value))));
+                ::create_bind(obj_id, obj_value, obj_type))));
   }
 
 __impl_manager::~__impl_manager()

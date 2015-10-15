@@ -1,8 +1,11 @@
 /**
  * @file pdu_bindings.hxx
- * @brief
+ * @brief PDU object bindings
  * @author Miroslav Cibulka - xcibul10
  * @details
+ *    This contains pdu object bindings which means
+ *    name & value. Value may have different types like
+ *    octet string or integer.
  */
 
 #pragma once
@@ -16,14 +19,20 @@ namespace Packet
         {
             namespace Bindings
               {
-
+                  /**
+                   * @brief list of objects bindings
+                   */
                   struct BindingList :
                       public BitMap
                     {
                       virtual ::std::string getStrRepre() override;
 
-                      virtual ::std::vector<BYTE> getBinary();
+                      virtual BinaryVectorT getBinary();
 
+                      /**
+                       * @brief push_back binding
+                       * @param dat is BitMap of binding
+                       */
                       void push_back(BitMap *dat);
 
                       virtual ~BindingList();
@@ -32,58 +41,28 @@ namespace Packet
                       ::std::vector<::std::unique_ptr<BitMap>> objs;
                     };
 
-                  struct Bind :
+                  struct Object :
                       public BitMap
                     {
-                      Bind(
-                          BitMap *obj_name,
-                          BitMap *obj_value);
-
-                      virtual ::std::string getStrRepre() override;
-
-                      virtual ::std::vector<BYTE> getBinary();
-
-                      virtual ~Bind();
-
-                  private:
-                      ::std::unique_ptr<BitMap> _obj_name;
-                      ::std::unique_ptr<BitMap> _obj_value;
-                    };
-
-                  struct ObjectName :
-                      public BitMap
-                    {
-                      ObjectName(::std::string name);
+                      Object(
+                          ::std::string name,
+                          BinaryVectorT value,
+                          ::DataTypesE type);
 
                       virtual ::std::string getStrRepre();
 
-                      virtual ::std::vector<BYTE> getBinary();
+                      virtual BinaryVectorT getBinary();
 
                       static ::std::unordered_map<
                           ::std::string, ::std::string> _decoded;
 
-                      ::std::string _name;
-                    };
-
-                  struct ObjectValue :
-                      public BitMap
-                    {
-                      ObjectValue(::std::string value);
-
-                      ObjectValue(int value);
-
-                      ObjectValue();
-
-                      virtual ::std::string getStrRepre() override;
-
-                      virtual ::std::vector<BYTE> getBinary();
-
+                      virtual ~Object();
                   private:
                       ::std::string _value_s;
-                      int _value_i;
+                      ::std::string _name;
 
-                      ::std::vector<BYTE> _value_b;
-                      ::DataTypesE type;
+                      BinaryVectorT _value_b;
+                      ::DataTypesE _type;
                     };
               }
         }

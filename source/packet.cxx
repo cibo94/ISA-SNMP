@@ -9,24 +9,47 @@
 #include "../include/packet.hxx"
 #include "../include/pdu.hxx"
 #include "../include/pdu_bindings.hxx"
+#include "../include/log.hxx"
 
 
 namespace Packet
   {
-      ::std::vector<BYTE> PDU::Type::_type_byte {0xA0, 0xA1, 0xA2, 0xA3};
-      ::std::unordered_map<BYTE, PDU::Type::TypeE> PDU::Type::_byte_type {
+      /* Types of SNMPv2 packets */
+      BinaryVectorT PDU::Type::_type_byte {0xA0, 0xA1, 0xA2, 0xA3};
+      ::std::unordered_map<ByteT, PDU::Type::TypeE> PDU::Type::_byte_type {
           {0xA0, PDU::Type::GET_REQ},
           {0xA1, PDU::Type::GET_NEXT_REQ},
           {0xA2, PDU::Type::GET_RESP},
           {0xA3, PDU::Type::SET_REQ}
       };
-      ::std::vector<::std::string> PDU::Type::_type_dec = {
-          "getRequest", "GetNextRequest", "GetResponse",
-          "SetResponse", "obsolete", "GetBulkRequest",
-          "InformRequest", "SNMPv2-TRAP"
-      };
+      enum if_types :
+          ByteT
+        {
+          ifIndex = 0,
+          ifDescr,
+          ifType,
+          ifMtu,
+          ifSpeed,
+          ifPhysAddress,
+          ifAdminStatus,
+          ifOperStatus,
+          ifLastChange,
+          ifInOctets,
+          ifInUcastPkts,
+          ifInNUcastPkts,
+          ifInDiscards,
+          ifInErrors,
+          ifInUnknownProtos,
+          ifOutOctets,
+          ifOutUcastPkts,
+          ifOutNUcastPkts,
+          ifOutDiscards,
+          ifOutErrors,
+          ifOutQLen,
+          ifSpecific
+        };
       ::std::unordered_map<
-          ::std::string, ::std::string> PDU::Bindings::ObjectName::_decoded = {
+          ::std::string, ::std::string> PDU::Bindings::Object::_decoded = {
               {"1.3.6.1.2.1.2.2.1.1", "ifIndex"},
               {"1.3.6.1.2.1.2.2.1.2", "ifDescr"},
               {"1.3.6.1.2.1.2.2.1.3", "ifType"},
@@ -48,9 +71,48 @@ namespace Packet
               {"1.3.6.1.2.1.2.2.1.19", "ifOutDiscards"},
               {"1.3.6.1.2.1.2.2.1.20", "ifOutErrors"},
               {"1.3.6.1.2.1.2.2.1.21", "ifOutQLen"},
-              {"1.3.6.1.2.1.2.2.1.22", "ifSpecific"}
+              {"1.3.6.1.2.1.2.2.1.22", "ifSpecific"},
+      };
+      ::std::vector<::std::string> ifType_decode = {
+          "other",
+          "regular1822",
+          "hdh1822",
+          "ddn-x25",
+          "rfc877-x25",
+          "ethernet-csmacd",
+          "iso88023-csmacd",
+          "iso88024-tokenBus",
+          "iso88025-tokenRing",
+          "iso88026-man",
+          "starLan",
+          "proteon-10Mbit",
+          "proteon-80Mbit",
+          "hyperchannel",
+          "fddi",
+          "lapb",
+          "sdlc",
+          "ds1",
+          "e1",
+          "basicISDN",
+          "primaryISDN",
+          "propPointToPointSerial",
+          "ppp",
+          "softwareLoopback",
+          "eon",
+          "ethernet-3Mbit",
+          "nsip",
+          "slip",
+          "ultra",
+          "ds3",
+          "sip",
+          "frame-relay"
       };
 
+      if_types getEnumObject(::std::string str_T)
+        {
+          return(if_types)
+              (::std::stoi(*(::SplitStr(str_T, '.').end() - 2)) - 1);
+        }
 
       ::std::string SNMPv2::getStrRepre()
         {
@@ -60,13 +122,13 @@ namespace Packet
           return ret;
         }
 
-      ::std::vector<BYTE> SNMPv2::getBinary()
+      BinaryVectorT SNMPv2::getBinary()
         {
           /* Sequence, length */
-          ::std::vector<BYTE> temp;
+          BinaryVectorT temp;
           for (auto &dat:  data)
             ::JoinVectors(temp, dat->getBinary());
-          ::std::vector<BYTE> ret {::DataTypesE::SEQ, (BYTE) temp.size()};
+          BinaryVectorT ret {::DataTypesE::SEQ, (ByteT) temp.size()};
           ::JoinVectors(ret, temp);
           return ret;
         }
@@ -80,8 +142,8 @@ namespace Packet
       ::std::string Version::getStrRepre()
         { return ""; }
 
-      ::std::vector<BYTE> Version::getBinary()
-        { return {::DataTypesE::INT, 0x01, (BYTE) ::std::stoi(_version)}; }
+      BinaryVectorT Version::getBinary()
+        { return {::DataTypesE::INT, 0x01, (ByteT) ::std::stoi(_version)}; }
 
       CommunityString::CommunityString(::std::string str) :
           _str(str)
@@ -90,9 +152,9 @@ namespace Packet
       ::std::string CommunityString::getStrRepre()
         { return ""; }
 
-      ::std::vector<BYTE> CommunityString::getBinary()
+      BinaryVectorT CommunityString::getBinary()
         {
-          ::std::vector<BYTE> ret {::DataTypesE::OCTET_STR, (BYTE)_str.size()};
+          BinaryVectorT ret {::DataTypesE::OCTET_STR, (ByteT)_str.size()};
           return ::JoinVectors(ret, ::StrToBin(_str));
         }
 
@@ -100,9 +162,15 @@ namespace Packet
           _version(ver)
         { }
 
+      Version::~Version()
+        { }
+
+      CommunityString::~CommunityString()
+        { }
+
       namespace PDU
         {
-            SNMPv2::SNMPv2(Type *_t) :
+            SNMPv2::SNMPv2(BitMap *_t) :
                 __type(_t)
               { }
 
@@ -114,13 +182,13 @@ namespace Packet
                 return ret;
               }
 
-            ::std::vector<BYTE> SNMPv2::getBinary()
+            BinaryVectorT SNMPv2::getBinary()
               {
-                ::std::vector<BYTE> temp;
+                BinaryVectorT temp;
                 for (auto &dat:  data)
                   ::JoinVectors(temp, dat->getBinary());
-                ::std::vector<BYTE> ret {
-                    __type->getBinary()[0], (BYTE) temp.size()
+                BinaryVectorT ret {
+                    __type->getBinary()[0], (ByteT) temp.size()
                 };
                 return ::JoinVectors(ret, temp);
               }
@@ -138,7 +206,7 @@ namespace Packet
             ::std::string Type::getStrRepre()
               { return ""; }
 
-            ::std::vector<BYTE> Type::getBinary()
+            BinaryVectorT Type::getBinary()
               { return {_type_byte[_type]}; }
 
             RequestID::RequestID(uint32_t id) :
@@ -148,9 +216,9 @@ namespace Packet
             ::std::string RequestID::getStrRepre()
               { return ""; }
 
-            ::std::vector<BYTE> RequestID::getBinary()
+            BinaryVectorT RequestID::getBinary()
               {
-                ::std::vector<BYTE> ret = {::DataTypesE::INT, 0x04};
+                BinaryVectorT ret = {::DataTypesE::INT, 0x04};
                 return ::JoinVectors(ret, ::NumToBin(_id));
               }
 
@@ -161,10 +229,10 @@ namespace Packet
             ::std::string Error::getStrRepre()
               { return ""; }
 
-            ::std::vector<BYTE> Error::getBinary()
+            BinaryVectorT Error::getBinary()
               {
-                ::std::vector<BYTE> ret = {::DataTypesE::INT, 0x01};
-                return ::JoinVectors(ret, ::NumToBin((BYTE) _err_code));
+                BinaryVectorT ret = {::DataTypesE::INT, 0x01};
+                return ::JoinVectors(ret, ::NumToBin((ByteT) _err_code));
               }
 
             ErrorIndex::ErrorIndex(uint32_t rep) :
@@ -174,11 +242,24 @@ namespace Packet
             ::std::string ErrorIndex::getStrRepre()
               { return ""; }
 
-            ::std::vector<BYTE> ErrorIndex::getBinary()
+            BinaryVectorT ErrorIndex::getBinary()
               {
-                ::std::vector<BYTE> ret = {::DataTypesE::INT, 0x01};
-                return ::JoinVectors(ret, ::NumToBin((BYTE) _index));
+                BinaryVectorT ret = {::DataTypesE::INT, 0x01};
+                return ::JoinVectors(ret, ::NumToBin((ByteT) _index));
               }
+
+
+            Type::~Type()
+              { }
+
+            RequestID::~RequestID()
+              { }
+
+            Error::~Error()
+              { }
+
+            ErrorIndex::~ErrorIndex()
+              { }
 
             namespace Bindings
               {
@@ -190,12 +271,12 @@ namespace Packet
                       return ret;
                     }
 
-                  ::std::vector<BYTE> BindingList::getBinary()
+                  BinaryVectorT BindingList::getBinary()
                     {
-                      ::std::vector<BYTE> temp;
+                      BinaryVectorT temp;
                       for (auto &obj: objs)
                         ::JoinVectors(temp, obj->getBinary());
-                      ::std::vector<BYTE> ret {::DataTypesE::SEQ , (BYTE) temp.size()};
+                      BinaryVectorT ret {::DataTypesE::SEQ , (ByteT) temp.size()};
                       return ::JoinVectors(ret, temp);
                     }
 
@@ -205,98 +286,100 @@ namespace Packet
                   BindingList::~BindingList()
                     { }
 
-                  Bind::Bind(
-                      BitMap *obj_name,
-                      BitMap *obj_value) :
-                      _obj_name(obj_name),
-                      _obj_value(obj_value)
-                    { }
-
-                  ::std::string Bind::getStrRepre()
+                  Object::Object(
+                      ::std::string name,
+                      BinaryVectorT value,
+                      ::DataTypesE type) :
+                      _name(name),
+                      _value_b(value),
+                      _type(type)
                     {
-                      return _obj_value != nullptr ?
-                             _obj_value->getStrRepre() : "";
-                    }
-
-                  ::std::vector<BYTE> Bind::getBinary()
-                    {
-                      ::std::vector<BYTE> temp;
-                      ::JoinVectors(temp, _obj_name->getBinary());
-                      ::JoinVectors(temp, _obj_value->getBinary());
-                      ::std::vector<BYTE> ret {::DataTypesE::SEQ, (BYTE) temp.size()};
-                      return ::JoinVectors(ret, temp);
-                    }
-
-                  Bind::~Bind()
-                    { }
-
-                  ObjectName::ObjectName(::std::string name) :
-                      _name(name)
-                    { }
-
-                  ::std::string ObjectName::getStrRepre()
-                    {
-                      auto split = StrSplit(_name, '.');
-                      ::std::string name = StrJoin(
-                          split.begin(), split.end() - 1, '.');
-                      ::std::string num = split.back();
-                      return _decoded[name] + "." + num;
-                    }
-
-                  ::std::vector<BYTE> ObjectName::getBinary()
-                    {
-                      ::std::vector<::std::string> attrs(::SplitStr(_name, '.'));
-                      ::std::vector<BYTE> temp {
-                          (BYTE)(::std::stoul(attrs[0]) * 40 + ::std::stoul(attrs[1]))
-                      };
-                      ::JoinVectors(temp, ::EncodeANS1(attrs));
-                      ::std::vector<BYTE> ret {
-                          ::DataTypesE::OBJECT_IDENT, (BYTE) temp.size()
-                      };
-                      return ::JoinVectors(ret, temp);
-                    }
-
-                  ObjectValue::ObjectValue(::std::string value)
-                    {
-                      _value_s = value;
-                      _value_b = {::DataTypesE::OCTET_STR, (BYTE) value.size()};
-                      ::JoinVectors(_value_b, _value_s);
-                      type = ::DataTypesE::OCTET_STR;
-                    }
-
-                  ObjectValue::ObjectValue(int value)
-                    {
-                      _value_i = value;
-                      _value_b = {::DataTypesE::INT, sizeof(_value_i)};
-                      ::JoinVectors(_value_b, ::NumToBin(_value_i));
-                      type = ::DataTypesE::INT;
-                    }
-
-                  ObjectValue::ObjectValue()
-                    {
-                      type = ::DataTypesE::NULL_T;
-                      _value_b = {::DataTypesE::NULL_T, 0};
-                    }
-
-                  ::std::string ObjectValue::getStrRepre()
-                    {
-                      switch(type)
+                      switch (getEnumObject(name))
                         {
-                          case INT:
-                            return ::std::to_string(_value_i);
-                          case OCTET_STR:
-                            return _value_s;
-                          case NULL_T:
-                            return "";
+                          case ifOutQLen:
+                          case ifInUnknownProtos:
+                          case ifInErrors:
+                          case ifInDiscards:
+                          case ifInNUcastPkts:
+                          case ifInUcastPkts:
+                          case ifInOctets:
+                          case ifSpeed:
+                          {
+                              unsigned long ival = 0;
+                              for (auto ite = value.begin();
+                                   ite != value.end();
+                                   ++ite)
+                                ival = (ival << 8) | *ite;
+                              _value_s = ::std::to_string(ival);
+                              break;
+                            }
+                          case ifOutErrors:
+                          case ifOutDiscards:
+                          case ifOutNUcastPkts:
+                          case ifOutUcastPkts:
+                          case ifOutOctets:
+                          case ifLastChange:
+                          case ifOperStatus:
+                          case ifAdminStatus:
+                          case ifIndex:
+                          case ifType:
+                          case ifMtu:
+                            {
+                              long ival = 0;
+                              for (auto ite = value.begin();
+                                   ite != value.end();
+                                   ++ite)
+                                ival = (ival << 8) | *ite;
+                              _value_s = ::std::to_string(ival);
+                              break;
+                            }
+                          case ifPhysAddress:
+                            {
+                              _value_s = ::BinToStr(
+                                  BinaryVectorT(value));
+                              ::InsertChar(_value_s, ':');
+                              break;
+                            }
+                          case ifSpecific:
+                            {
+                              if (value.size() > 0)
+                                _value_s = ::decodeObjectName(value);
+                              else
+                                _value_s = "0.0";
+                              break;
+                            }
+                          case ifDescr:
                           default:
-                            return "";
+                            _value_s = ::std::string(
+                                value.begin(), value.end());
+                          break;
                         }
                     }
 
-                  ::std::vector<BYTE> ObjectValue::getBinary()
+                  ::std::string Object::getStrRepre()
                     {
-                      return _value_b;
+                      return _value_s;
                     }
+
+                  BinaryVectorT Object::getBinary()
+                    {
+                      ::std::vector<::std::string> attrs(::SplitStr(_name, '.'));
+                      BinaryVectorT temp {
+                          (ByteT)(::std::stoul(attrs[0]) * 40 + ::std::stoul(attrs[1]))
+                      };
+                      ::JoinVectors(temp, ::EncodeANS1(attrs));
+                      BinaryVectorT ret {
+                          ::DataTypesE::SEQ, (ByteT) (_value_b.size() + temp.size() + 4),
+                          ::DataTypesE::OBJECT_IDENT, (ByteT) temp.size()
+                      };
+                      ::JoinVectors(ret, temp);
+                      ret.push_back(_type);
+                      ret.push_back((ByteT) _value_b.size());
+                      return ::JoinVectors(ret, _value_b);
+                    }
+
+                  Object::~Object()
+                    { }
               }
         }
   }

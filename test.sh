@@ -2,7 +2,7 @@
 
 VERBOSE=0
 MAKE=make
-CFLAGS="-std=c++14 -Wall -Wextra -pedantic -g"
+CFLAGS="-std=c++11 -Wall -Wextra -pedantic -g"
 PROG=isaSnmpIfLog
 LDFLAGS=""
 LDLIBS=""
@@ -41,34 +41,17 @@ function arg_parse()
 
 function compile()
   {
-    make
-    rm build/main.o
-    echo "g++ ${1} ${CFLAGS} -c -o build/test.o"
-    g++ ${1} ${CFLAGS} -c -o build/test.o
-    echo "g++ " build/*.o " ${LDFLAGS} ${LDLIBS} -o test.run"
-    g++ build/*.o ${LDFLAGS} ${LDLIBS} -o test.run
+    ${MAKE}
   }
+
+counter=0
 
 function run_test()
   {
-    echo "  TEST SUITE ${1}"
-    if [[ "${VERBOSE}" -eq "0" ]]
-      then
-        compile $1 >/dev/null 2>&1
-      else
-        compile $1
-      fi
-    if ./test.run
-      then
-        echo -e "  TEST SUITE '${1}' \e[0;32mPASSED\e[0m!"
-      else
-        echo -e "  TEST SUITE '${1}' \e[0;31mFAILED\e[0m!"
-      fi
+		valgrind ${PROG} $@
+		counter=$((counter+1))
   }
 
 arg_parse $@
-printf '=%.0s' {1..$(tput cols)}
-echo
-run_test tests/test_package.cxx
-printf '=%.0s' {1..$(tput cols)}
-echo
+compile
+run_test

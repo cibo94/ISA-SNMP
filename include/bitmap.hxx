@@ -18,11 +18,14 @@ extern "C" {
 
 #define IS_BIG_ENDIAN ((bool)((*(uint16_t *)"\0\xff") < 0x100))
 
-typedef uint8_t BYTE;
+typedef ::uint8_t ByteT;
+typedef ::std::vector<ByteT> BinaryVectorT;
+
 
 static const ::std::string BINARY_DECODE_STRING = "0123456789ABCDEF";
 
-enum DataTypesE : BYTE
+enum DataTypesE :
+    ByteT
   {
     INT = 0x02, OCTET_STR = 0x04, NULL_T = 0x05, OBJECT_IDENT = 0x06
     , SEQ = 0x30, GET_REQ_PDU = 0xA0, GET_RESP_PDU = 0xA2, SET_REQ_PDU = 0xA3
@@ -34,23 +37,23 @@ struct BitMap
     BitMap(BitMap &&) = default;
     virtual BitMap &operator=(BitMap &&) = default;
     virtual ::std::string getStrRepre() = 0;
-    virtual ::std::vector<BYTE> getBinary() = 0;
+    virtual BinaryVectorT getBinary() = 0;
     virtual ~BitMap() { };
   };
 
-static inline ::std::vector<BYTE> StrToBin(
+static inline BinaryVectorT StrToBin(
     ::std::string str)
-  { return ::std::vector<BYTE>(::std::begin(str), ::std::end(str)); }
+  { return BinaryVectorT(::std::begin(str), ::std::end(str)); }
 
 template<
     typename _IntegerT>
-  static inline ::std::vector<BYTE> NumToBin(
+  static inline BinaryVectorT NumToBin(
       _IntegerT num)
     {
-      BYTE *ptr_n = reinterpret_cast<BYTE *>(&num);
+      ByteT *ptr_n = reinterpret_cast<ByteT *>(&num);
       if (!IS_BIG_ENDIAN)
         ::std::reverse(ptr_n, ptr_n + sizeof(_IntegerT));
-      return ::std::vector<BYTE>(ptr_n, ptr_n + sizeof(_IntegerT));
+      return BinaryVectorT(ptr_n, ptr_n + sizeof(_IntegerT));
     }
 
 template<
@@ -95,22 +98,22 @@ static inline ::std::vector<::std::string> SplitStr(
     return ret;
   }
 
-static inline ::std::vector<BYTE> EncodeANS1(
+static inline BinaryVectorT EncodeANS1(
     ::std::vector<::std::string> attrs)
   {
-    ::std::vector<BYTE> ret;
+    BinaryVectorT ret;
     for (auto attr = attrs.begin() + 2; attr != attrs.end(); ++attr)
       {
         unsigned long num = ::std::stoul(*attr);
-        ::std::vector<BYTE> temp;
+        BinaryVectorT temp;
         if (num > 127)
           while (num > 0)
             {
-              temp.push_back((BYTE)(num | 0x80));
+              temp.push_back((ByteT)(num | 0x80));
               num >>= 7;
             }
         else
-          temp.push_back((BYTE) num);
+          temp.push_back((ByteT) num);
         ::std::reverse(temp.begin(), temp.end());
         ::JoinVectors(ret, temp);
       }
@@ -142,4 +145,52 @@ static inline ::std::string StrJoin(
       (ret += *(str_B++)).push_back(del);
     ret += *str_B;
     return ret;
+  }
+
+template<
+    typename _VectorT>
+  static inline _VectorT &InsertChar(
+      _VectorT &vec,
+      char c)
+    {
+      if (vec.size() > 0)
+        for (int i = vec.size() - 1; i > 0; --i)
+          if (i % 2 == 0)
+            vec.insert(vec.begin() + i, c);
+      return vec;
+    }
+
+
+static inline ::std::string decodeObjectName(
+    BinaryVectorT &msg)
+  {
+    ::std::vector<uint32_t> data {
+        (uint32_t)(msg[0]/40), (uint32_t)(msg[0]%40)
+    };
+    bool was_m_b = false;
+    for (auto ite = msg.begin() + 1;
+         ite != msg.begin() + msg.size();
+         ++ite)
+      {
+        if ((*ite) & 0x80)
+          {
+            if (!was_m_b) data.push_back(0);
+            data.back() <<= 7;
+            data.back() |= (*ite) & 0x7F;
+            was_m_b = true;
+          }
+        else
+          {
+            data.push_back(*ite);
+            was_m_b = false;
+          }
+      }
+    ::std::string str_vec;
+    auto bin = data.begin();
+    for (;
+        bin != data.end() - 1;
+        ++bin)
+      str_vec += ::std::to_string(*bin) + ".";
+    str_vec += ::std::to_string(*bin);
+    return str_vec;
   }

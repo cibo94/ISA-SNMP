@@ -19,7 +19,7 @@ namespace Packet
       {
         virtual ::std::string getStrRepre() override;
 
-        virtual ::std::vector<BYTE> getBinary();
+        virtual BinaryVectorT getBinary();
 
         void push_back(BitMap *dat);
 
@@ -35,8 +35,9 @@ namespace Packet
 
         virtual ::std::string getStrRepre() override;
 
-        virtual ::std::vector<BYTE> getBinary();
+        virtual BinaryVectorT getBinary();
 
+        virtual ~CommunityString();
       private:
         ::std::string _str;
       };
@@ -48,8 +49,9 @@ namespace Packet
 
         virtual ::std::string getStrRepre() override;
 
-        virtual ::std::vector<BYTE> getBinary();
+        virtual BinaryVectorT getBinary();
 
+        virtual ~Version();
     private:
         ::std::string _version;
       };
