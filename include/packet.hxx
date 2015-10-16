@@ -2,7 +2,20 @@
  * @file packet.hxx
  * @brief
  * @author Miroslav Cibulka - xcibul10
- * @details
+ * @details Packet implementation
+ *    Contains whole structure of SNMPv2 packet:
+ *       Version
+ *       Community String
+ *       PDU
+ *         -> Type
+ *         -> Request ID
+ *         -> Error
+ *         -> Error index
+ *         -> Bindings
+ *            --> Object
+ *                ---> Object name
+ *                ---> Object value
+ *            ...
  */
 
 #pragma once
@@ -14,45 +27,61 @@
 
 namespace Packet
   {
-    struct SNMPv2 :
-        public BitMap
-      {
-        virtual ::std::string getStrRepre() override;
+      /**
+       * @brief SNMPv2 header
+       */
+      struct SNMPv2 :
+          public BitMap
+        {
+          virtual ::std::string getStrRepre() override;
 
-        virtual BinaryVectorT getBinary();
+          virtual BinaryVectorT getBinary();
 
-        void push_back(BitMap *dat);
+          void push_back(BitMap *dat);
 
-        virtual ~SNMPv2();
+          virtual ~SNMPv2();
+
       private:
-        ::std::vector<::std::unique_ptr<BitMap>> data;
-      };
+          ::std::vector<::std::unique_ptr<BitMap>> data;
+        };
 
-    struct CommunityString :
-        public BitMap
-      {
-        CommunityString(::std::string str);
+      /**
+       * @brief Community string
+       */
+      struct CommunityString :
+          public BitMap
+        {
+          /**
+           * @param str community
+           */
+          CommunityString(::std::string str);
 
-        virtual ::std::string getStrRepre() override;
+          virtual ::std::string getStrRepre() override;
 
-        virtual BinaryVectorT getBinary();
+          virtual BinaryVectorT getBinary();
 
-        virtual ~CommunityString();
+          virtual ~CommunityString();
+
       private:
-        ::std::string _str;
-      };
+          ::std::string _str;
+        };
 
-    struct Version :
-        public BitMap
-      {
-        Version(::std::string ver);
+      /**
+       * @brief Version (1,2,3)
+       */
+      struct Version :
+          public BitMap
+        {
+          /** In string format */
+          Version(::std::string ver);
 
-        virtual ::std::string getStrRepre() override;
+          virtual ::std::string getStrRepre() override;
 
-        virtual BinaryVectorT getBinary();
+          virtual BinaryVectorT getBinary();
 
-        virtual ~Version();
-    private:
-        ::std::string _version;
-      };
+          virtual ~Version();
+
+      private:
+          ::std::string _version;
+        };
   }

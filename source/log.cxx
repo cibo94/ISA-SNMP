@@ -1,3 +1,12 @@
+/**
+ * @file log.cxx
+ * @brief Logging module with timestamp
+ * @author Miroslav Cibulka - xcibul10
+ * @details
+ *    contains timestamp and logging class
+ */
+
+
 #include "../include/log.hxx"
 #include <chrono>
 #include <iomanip>

@@ -1,8 +1,8 @@
 /**
  * @file main.cxx
- * @brief
+ * @brief Main program
  * @author Miroslav Cibulka - xcibul10
- * @details
+ * @details Main program
  */
 
 #include <iostream>

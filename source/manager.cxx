@@ -1,8 +1,8 @@
 /**
  * @file manager.cxx
- * @brief
+ * @brief SNMPv2 API
  * @author Miroslav Cibulka - xcibul10
- * @details
+ * @details Contains SNMPv2 API for sending next-requests
  */
 
 #include <iostream>

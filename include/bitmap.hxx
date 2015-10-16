@@ -1,8 +1,10 @@
 /**
  * @file bitmap.hxx
- * @brief
+ * @brief Support module
  * @author Miroslav Cibulka - xcibul10
  * @details
+ *    supporting module for SNMPv2 packet, contains
+ *    function, base classes, global enumerators, typedefs, macros ...
  */
 
 #pragma once
@@ -16,14 +18,21 @@ extern "C" {
 #include <stdint.h>
 }
 
+/** Checks if system is big or little endian */
 #define IS_BIG_ENDIAN ((bool)((*(uint16_t *)"\0\xff") < 0x100))
 
+/** Byte is eight-bit number */
 typedef ::uint8_t ByteT;
+
+/** Binary vector is vector of bytes */
 typedef ::std::vector<ByteT> BinaryVectorT;
 
-
+/** Hex lookup table for decoding binary */
 static const ::std::string BINARY_DECODE_STRING = "0123456789ABCDEF";
 
+/**
+ * Basic data types with codes
+ */
 enum DataTypesE :
     ByteT
   {
@@ -33,18 +42,49 @@ enum DataTypesE :
 
 struct BitMap
   {
+    /** Default cons */
     BitMap() = default;
+
+    /** Default move cons */
     BitMap(BitMap &&) = default;
+
+    /** Default move operator */
     virtual BitMap &operator=(BitMap &&) = default;
+
+    /**
+     * @brief Gets string representation of bitmap
+     * @return string
+     */
     virtual ::std::string getStrRepre() = 0;
+
+    /**
+     * @brief Gets binary representation of bitmap
+     * @return binary vector
+     */
     virtual BinaryVectorT getBinary() = 0;
+
+    /**
+     * @brief Needs to be virtual because it won't deallocate alone and
+     *        some of instances may contains containers
+     */
     virtual ~BitMap() { };
   };
 
+/**
+ * @brief Converts string to binary without zero at the end
+ * @param str is input string
+ * @return binary vector
+ */
 static inline BinaryVectorT StrToBin(
     ::std::string str)
   { return BinaryVectorT(::std::begin(str), ::std::end(str)); }
 
+/**
+ * @brief Converts Number to binary
+ * @tparam _IntegerT is integer type with n-bytes - size does matters
+ * @param num is number
+ * @return vector created from this number
+ */
 template<
     typename _IntegerT>
   static inline BinaryVectorT NumToBin(
@@ -56,6 +96,12 @@ template<
       return BinaryVectorT(ptr_n, ptr_n + sizeof(_IntegerT));
     }
 
+/**
+ * @brief Converts binary to string in hex format
+ * @tparam _BinaryT is type of binary vector
+ * @param binary is binary vector
+ * @return string of hex dump
+ */
 template<
     typename _BinaryT>
   static inline ::std::string BinToStr(
@@ -71,6 +117,14 @@ template<
       return ret;
     }
 
+/**
+ * @brief Joins 2 vectors of same type
+ * @tparam _VectorTIn is input vector
+ * @tparam _VectorTOut is output vector
+ * @param _out is output vector - unique reference
+ * @param _in is input vector - reference
+ * @return _out
+ */
 template<
     typename _VectorTIn,
     typename _VectorTOut>
@@ -84,20 +138,11 @@ template<
       return _out;
     }
 
-static inline ::std::vector<::std::string> SplitStr(
-    ::std::string str,
-    char del)
-  {
-    ::std::vector<::std::string> ret;
-    ret.push_back("");
-    for (auto &ch: str)
-      if (ch != del)
-        ret.back().push_back(ch);
-      else
-        ret.push_back("");
-    return ret;
-  }
-
+/**
+ * @brief encodes vector of strings into ANS.1 coding binary format
+ * @params attrs is vector of attributes (e.g. 1.0.1.0.2.85.4)
+ * @return binary vector
+ */
 static inline BinaryVectorT EncodeANS1(
     ::std::vector<::std::string> attrs)
   {
@@ -120,6 +165,12 @@ static inline BinaryVectorT EncodeANS1(
     return ret;
   }
 
+/**
+ * @brief split strings into vector via delimiter
+ * @param str is string
+ * @param d is delimiter that won't be in vector
+ * @return split string
+ */
 static inline ::std::vector<::std::string> StrSplit(
     ::std::string str,
     char d)
@@ -135,6 +186,13 @@ static inline ::std::vector<::std::string> StrSplit(
     return ret;
   }
 
+/**
+ * @brief joins vector of strings into one and insert between them delimiter
+ * @param str_B is iterator of string begining
+ * @param str_E is iterator of string end
+ * @param del is delimiter that will be inserted between strings
+ * @return joined string
+ */
 static inline ::std::string StrJoin(
     ::std::vector<::std::string>::iterator str_B,
     ::std::vector<::std::string>::iterator str_E,
@@ -147,26 +205,38 @@ static inline ::std::string StrJoin(
     return ret;
   }
 
+/**
+ * @brief inserts char into vector of char or string
+ * @tparam _VectorT is type of vector - may be string or vector of chars
+ * @tparam _PartitionSize is size of chunks between char will be inserted
+ * @param vec of chars
+ * @param c is character that will be added between chunks
+ */
 template<
-    typename _VectorT>
+    typename _VectorT,
+    int _PartitionSize = 2>
   static inline _VectorT &InsertChar(
       _VectorT &vec,
       char c)
     {
       if (vec.size() > 0)
         for (int i = vec.size() - 1; i > 0; --i)
-          if (i % 2 == 0)
+          if (i % _PartitionSize == 0)
             vec.insert(vec.begin() + i, c);
       return vec;
     }
 
-
+/**
+ * @brief Decodes object name from ANS.1 coding
+ * @param msg are binary data
+ */
 static inline ::std::string decodeObjectName(
     BinaryVectorT &msg)
   {
     ::std::vector<uint32_t> data {
         (uint32_t)(msg[0]/40), (uint32_t)(msg[0]%40)
     };
+    /*if number was multi-byte or single*/
     bool was_m_b = false;
     for (auto ite = msg.begin() + 1;
          ite != msg.begin() + msg.size();

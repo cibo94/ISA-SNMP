@@ -1,8 +1,10 @@
 /**
  * @file pdu.hxx
- * @brief
+ * @brief PDU class implementation
  * @author Miroslav Cibulka - xcibul10
  * @details
+ *    PDU is a field of SNMPv2 packet holding Object bindings
+ *    and their data, type of request/response and so on.
  */
 
 #pragma once
@@ -35,7 +37,7 @@ namespace Packet
 
             private:
                 /** Version of type of SMNPv2 packet (e.g. GET_REQ)*/
-                BitMap *__type;
+                ::std::unique_ptr<BitMap> __type;
 
                 /** Actual data */
                 ::std::vector<::std::unique_ptr<BitMap>> data;

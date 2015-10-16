@@ -1,8 +1,8 @@
 /**
  * @file params.cxx
- * @brief
+ * @brief Argument parser
  * @author Miroslav Cibulka - xcibul10
- * @details
+ * @details Argument parser
  */
 
 #include "../include/params.hxx"

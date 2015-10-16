@@ -1,8 +1,8 @@
 /**
  * @file params.hxx
- * @brief
+ * @brief Argument parser
  * @author Miroslav Cibulka - xcibul10
- * @details
+ * @details Argument parser
  */
 
 #pragma once

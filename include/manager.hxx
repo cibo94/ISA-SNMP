@@ -1,8 +1,8 @@
 /**
- * @file packet.hxx
- * @brief
+ * @file manager.hxx
+ * @brief SNMPv2 API
  * @author Miroslav Cibulka - xcibul10
- * @details
+ * @details Contains SNMPv2 API for sending next-requests
  */
 
 #pragma once

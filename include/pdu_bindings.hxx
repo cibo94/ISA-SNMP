@@ -1,6 +1,6 @@
 /**
  * @file pdu_bindings.hxx
- * @brief PDU object bindings
+ * @brief PDU object bindings classes implementation
  * @author Miroslav Cibulka - xcibul10
  * @details
  *    This contains pdu object bindings which means

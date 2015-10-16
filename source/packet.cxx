@@ -3,6 +3,25 @@
  * @brief
  * @author Miroslav Cibulka - xcibul10
  * @details
+ *    Contains whole structure of SNMPv2 packet:
+ *       Version
+ *       Community String
+ *       PDU
+ *         -> Type
+ *         -> Request ID
+ *         -> Error
+ *         -> Error index
+ *         -> Bindings
+ *            --> Object
+ *                ---> Object name
+ *                ---> Object value
+ *            ...
+ *
+ *    PDU is a field of SNMPv2 packet holding Object bindings
+ *    and their data, type of request/response and so on.
+ *
+ *    Bindings contains list of objects and object name & value.
+ *    Value may have different types like octet string or integer.
  */
 
 #include <iostream>
@@ -22,6 +41,7 @@ namespace Packet
           {0xA2, PDU::Type::GET_RESP},
           {0xA3, PDU::Type::SET_REQ}
       };
+      /** if all types in one enumerator @see PDU::Bindings::Object::Object */
       enum if_types :
           ByteT
         {
@@ -48,6 +68,7 @@ namespace Packet
           ifOutQLen,
           ifSpecific
         };
+      /** ObjectName ID <-> human-readable names */
       ::std::unordered_map<
           ::std::string, ::std::string> PDU::Bindings::Object::_decoded = {
               {"1.3.6.1.2.1.2.2.1.1", "ifIndex"},
@@ -73,6 +94,7 @@ namespace Packet
               {"1.3.6.1.2.1.2.2.1.21", "ifOutQLen"},
               {"1.3.6.1.2.1.2.2.1.22", "ifSpecific"},
       };
+      /** Decode lookup table for ifType */
       ::std::vector<::std::string> ifType_decode = {
           "other",
           "regular1822",
@@ -111,7 +133,7 @@ namespace Packet
       if_types getEnumObject(::std::string str_T)
         {
           return(if_types)
-              (::std::stoi(*(::SplitStr(str_T, '.').end() - 2)) - 1);
+              (::std::stoi(*(::StrSplit(str_T, '.').end() - 2)) - 1);
         }
 
       ::std::string SNMPv2::getStrRepre()
@@ -296,7 +318,13 @@ namespace Packet
                     {
                       switch (getEnumObject(name))
                         {
+                          /*Counter32,Gauge32 -> unsigned*/
                           case ifOutQLen:
+                          case ifOutErrors:
+                          case ifOutDiscards:
+                          case ifOutNUcastPkts:
+                          case ifOutUcastPkts:
+                          case ifOutOctets:
                           case ifInUnknownProtos:
                           case ifInErrors:
                           case ifInDiscards:
@@ -313,11 +341,7 @@ namespace Packet
                               _value_s = ::std::to_string(ival);
                               break;
                             }
-                          case ifOutErrors:
-                          case ifOutDiscards:
-                          case ifOutNUcastPkts:
-                          case ifOutUcastPkts:
-                          case ifOutOctets:
+                          /*INTEGER,Timeticks -> signed*/
                           case ifLastChange:
                           case ifOperStatus:
                           case ifAdminStatus:
@@ -333,6 +357,7 @@ namespace Packet
                               _value_s = ::std::to_string(ival);
                               break;
                             }
+                          /*HEX-String*/
                           case ifPhysAddress:
                             {
                               _value_s = ::BinToStr(
@@ -340,14 +365,16 @@ namespace Packet
                               ::InsertChar(_value_s, ':');
                               break;
                             }
+                          /*Object name*/
                           case ifSpecific:
                             {
                               if (value.size() > 0)
                                 _value_s = ::decodeObjectName(value);
                               else
-                                _value_s = "0.0";
+                                _value_s = "";
                               break;
                             }
+                          /*Octet string -> ASCII non-zero ended*/
                           case ifDescr:
                           default:
                             _value_s = ::std::string(
@@ -363,7 +390,7 @@ namespace Packet
 
                   BinaryVectorT Object::getBinary()
                     {
-                      ::std::vector<::std::string> attrs(::SplitStr(_name, '.'));
+                      ::std::vector<::std::string> attrs(::StrSplit(_name, '.'));
                       BinaryVectorT temp {
                           (ByteT)(::std::stoul(attrs[0]) * 40 + ::std::stoul(attrs[1]))
                       };
