@@ -74,12 +74,23 @@ class Manager :
   {
 public:
 
+    /**
+     * @brief Creates manager that sends packets or receive packets
+     * @param addr is string form of address - ipv4 or dns
+     * @param port to which manager will send packet or receive from
+     * @details Should not be instantiated more than once per time
+     */
     Manager(
         ::std::string addr,
         uint16_t port) :
         __impl_manager(addr, port, _socket, _sin, _hostent)
       { }
 
+    /**
+     * @brief Sends packet to host/agent defined with following fields
+     * @param Community string
+     * @param
+     */
     Manager &send(
         ::std::string Community,
         ::Packet::PDU::Type::TypeE PDUType,

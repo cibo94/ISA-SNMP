@@ -31,30 +31,15 @@
 #define PORT 161
 #define TRAP_PORT 162
 
-bool is_number(const std::string& s)
+/**
+ * @brief checks if string is numeric only
+ */
+bool is_number(
+    const std::string& s)
   {
     return !s.empty() && std::find_if(
         s.begin(), s.end(),
         [](char c) { return !std::isdigit(c); }) == s.end();
-  }
-
-::std::string pretty_hex_bin(::std::string str)
-  {
-    int i = 1;
-    ::std::string out;
-    for (auto &ch: str)
-      {
-        out.push_back(ch);
-        if (!(i % 2))
-          out.push_back(' ');
-        if (i == 8)
-          {
-            out += "\n";
-            i = 0;
-          }
-        i++;
-      }
-    return out;
   }
 
 void messenger(
@@ -65,7 +50,6 @@ void messenger(
 
     ::std::string first = "1.3.6.1.2.1.2.2";
     ::std::string obj = first;
-    /* WTF - after exception logs were multiplied */
     ::std::string repz;
     ::std::vector<::std::string> rets;
     ::std::string last_base_obj = first;
@@ -74,6 +58,7 @@ void messenger(
       {
         try
           {
+            /* send & receive */
             auto snmp = manager.send(
                 community, ::Packet::PDU::Type::GET_NEXT_REQ, 0x42,
                 Error::noError, 0, &obj, {}, ::DataTypesE::NULL_T).retrieve();
@@ -85,20 +70,22 @@ void messenger(
               throw ::std::runtime_error(
                   "No response from server!");
 
-            //::logging::log() << snmp->getStrRepre();
-
+            /* Checks if returned object is from same family as previous object */
             auto toks = StrSplit(obj, '.');
             ::std::string base_obj = StrJoin(toks.begin(), toks.end() - 1, '.');
             if (base_obj != last_base_obj)
               {
+                /* If not variables will now point to the new object family */
                 i = 0;
                 last_base_obj = base_obj;
               }
 
+            /* resize if needed */
             if (rets.size() <= (unsigned long)i)
               rets.resize((size_t) i + 1);
 
-            rets[i] += " " + snmp->getStrRepre() + ";";
+            /* Append object value to the right column */
+            rets[i] += snmp->getStrRepre() + ";";
             repz = obj;
             i++;
           }
@@ -107,7 +94,8 @@ void messenger(
             ::logging::error() << ex.what();
           }
       }
-    ::logging() << StrJoin(rets.begin(), rets.end(), ' ');
+    /* at last strings will join and prints in form ${date};d1;d2;... */
+    ::logging() << ::StrJoin(rets.begin(), rets.end());
   }
 
 ::std::vector<::std::thread> threads;
@@ -142,13 +130,27 @@ int main(
         /* Main loop for sending and retrieving SNMP messages */
         ::Manager manager(address, PORT);
         auto inter = ::std::stoull(interval);
-        ::std::vector<::std::thread> threads;
-        while (1)
+
+        /* Setting up clock for sleep correction */
+        long ms = 0;
+        typedef std::chrono::high_resolution_clock Clock;
+        typedef std::chrono::milliseconds milliseconds;
+        Clock::time_point beg;
+        Clock::time_point end;
+
+        /* Main loop */
+        do
           {
+            beg = Clock::now();
             ::messenger(community, manager);
-            ::std::this_thread::sleep_for(
-                ::std::chrono::milliseconds(inter));
-          }
+            end = Clock::now();
+            ms = ::std::chrono::duration_cast<milliseconds>(
+                end - beg).count();
+            /* Time has to be corrected by time spent sending and receiving */
+            if ((unsigned long) ms < inter)
+              ::std::this_thread::sleep_for(
+                  ::std::chrono::milliseconds(inter - ms));
+          } while (1);
       }
     catch (::std::exception &ex)
       {

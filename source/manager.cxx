@@ -9,7 +9,6 @@
 #include <fcntl.h>
 #include <thread>
 #include "../include/manager.hxx"
-#include "../include/log.hxx"
 
 
 static ::std::string *s_obj_id;
@@ -199,7 +198,6 @@ namespace DECODE
                 BinaryVectorT &msg)
               {
                 size_t size = msg[1];
-                /// !!!!!!!!!!! TODO: rewrite this!
                 BinaryVectorT req(
                     msg.begin() + 2, msg.begin() + size + 2);
                 uint32_t ret = 0;

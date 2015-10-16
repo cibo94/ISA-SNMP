@@ -28,7 +28,6 @@
 #include "../include/packet.hxx"
 #include "../include/pdu.hxx"
 #include "../include/pdu_bindings.hxx"
-#include "../include/log.hxx"
 
 
 namespace Packet
@@ -92,7 +91,7 @@ namespace Packet
               {"1.3.6.1.2.1.2.2.1.19", "ifOutDiscards"},
               {"1.3.6.1.2.1.2.2.1.20", "ifOutErrors"},
               {"1.3.6.1.2.1.2.2.1.21", "ifOutQLen"},
-              {"1.3.6.1.2.1.2.2.1.22", "ifSpecific"},
+              {"1.3.6.1.2.1.2.2.1.22", "ifSpecific"}
       };
       /** Decode lookup table for ifType */
       ::std::vector<::std::string> ifType_decode = {

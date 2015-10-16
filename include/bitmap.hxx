@@ -196,11 +196,14 @@ static inline ::std::vector<::std::string> StrSplit(
 static inline ::std::string StrJoin(
     ::std::vector<::std::string>::iterator str_B,
     ::std::vector<::std::string>::iterator str_E,
-    char del)
+    char del = 0)
   {
     ::std::string ret;
     while (str_B != str_E - 1)
-      (ret += *(str_B++)).push_back(del);
+      if (del)
+        (ret += *(str_B++)).push_back(del);
+      else
+        ret += *(str_B++);
     ret += *str_B;
     return ret;
   }

@@ -12,14 +12,14 @@
 LD          = ${CXX}
 
 # Flags
-CXXFLAGS    = -std=c++11 -Wall -Wextra -pedantic -g
+CXXFLAGS    = -std=c++11 -Wall -Wextra -pedantic
 LDFLAGS     =
-LDLIBS      = -pthread
+LDLIBS      =
 
 # Target(s)
 TARGET      = isaSnmpIfLog
 BIN         = ${PREFIX}/bin
-INSTALLED   = ${BIN}/isaSnmpIfLog
+DESTDIR     = ${BIN}
 
 # Source files
 SOURCE      = source/main.cxx source/params.cxx source/packet.cxx \
@@ -61,21 +61,20 @@ install: ${TARGET}
 ${BUILD}:
 	[ -d ${BUILD} ] || mkdir ${BUILD}
 
-${BUILD}/params.o:	source/params.cxx include/params.hxx include/log.hxx
+${BUILD}/params.o:  source/params.cxx include/params.hxx
 	${COMPILE.cxx} ${BUILD}/params.o source/params.cxx
 
-${BUILD}/packet.o:	source/packet.cxx include/packet.hxx include/bitmap.hxx \
-					include/log.hxx
+${BUILD}/packet.o:  source/packet.cxx include/packet.hxx include/bitmap.hxx
 	${COMPILE.cxx} ${BUILD}/packet.o source/packet.cxx
 
-${BUILD}/manager.o:	source/manager.cxx include/manager.hxx include/packet.hxx \
-					include/pdu.hxx include/pdu_bindings.hxx include/log.hxx
+${BUILD}/manager.o: source/manager.cxx include/manager.hxx include/packet.hxx \
+					include/pdu.hxx include/pdu_bindings.hxx
 	${COMPILE.cxx} ${BUILD}/manager.o source/manager.cxx
 
-${BUILD}/log.o:		source/log.cxx include/log.hxx
+${BUILD}/log.o:     source/log.cxx include/log.hxx
 	${COMPILE.cxx} ${BUILD}/log.o source/log.cxx
 
-${BUILD}/main.o:	source/main.cxx include/packet.hxx include/params.hxx \
+${BUILD}/main.o:    source/main.cxx include/packet.hxx include/params.hxx \
 					include/bitmap.hxx include/pdu.hxx include/log.hxx \
 					include/manager.hxx include/pdu_bindings.hxx
 	${COMPILE.cxx} ${BUILD}/main.o source/main.cxx
@@ -87,7 +86,7 @@ clean:
 	${RM.rf} ${BUILD} ${TARGET} ${TARBALL}
 
 uninstall:
-	${RM.rf} ${INSTALLED}
+	${RM.rf} ${DESTDIR}/${TARGET}
 
 test:
 	./test.sh -v

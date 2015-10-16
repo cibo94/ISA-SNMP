@@ -22,7 +22,7 @@ public:
      */
     logging(
         std::ostream &out = ::std::cout,
-        ::std::string stamp = get_stamp() + "; ");
+        ::std::string stamp = get_stamp() + ";");
 
     /**
      * @brief warn type of logging, creates specific logging object with
