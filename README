@@ -1,0 +1,19 @@
+SNMP manager
+============
+
+This program is used for checking changes in interfaces of device in network. Output is in '.csv' format, with time stamp.
+
+Synopsis
+--------
+
+./isaSnmpIfLog -i INTERVAL -c COMMUNITY AGENT
+
+* -i:       interval between logs, implicit 100 ms
+* -c:       community string
+* AGENT:    IP address of agent (device)
+
+Build & run
+-----------
+
+make
+./isaSnmpIfLog -i 1000 -c public 192.168.1.1
