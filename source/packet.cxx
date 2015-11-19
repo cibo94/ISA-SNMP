@@ -331,7 +331,7 @@ namespace Packet
                           case ifInUcastPkts:
                           case ifInOctets:
                           case ifSpeed:
-                          {
+                            {
                               unsigned long ival = 0;
                               for (auto ite = value.begin();
                                    ite != value.end();

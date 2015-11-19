@@ -9,7 +9,6 @@
 #include <thread>
 #include "../include/params.hxx"
 #include "../include/packet.hxx"
-#include "../include/pdu.hxx"
 #include "../include/manager.hxx"
 #include "../include/log.hxx"
 
@@ -35,11 +34,11 @@
  * @brief checks if string is numeric only
  */
 bool is_number(
-    const std::string& s)
+    const ::std::string& s)
   {
-    return !s.empty() && std::find_if(
+    return !s.empty() && ::std::find_if(
         s.begin(), s.end(),
-        [](char c) { return !std::isdigit(c); }) == s.end();
+        [](char c) { return !::std::isdigit(c); }) == s.end();
   }
 
 void messenger(
@@ -48,11 +47,11 @@ void messenger(
   {
     using namespace ::Packet::PDU;
 
-    ::std::string first = "1.3.6.1.2.1.2.2";
-    ::std::string obj = first;
-    ::std::string repz;
+    ::std::string first = "1.3.6.1.2.1.2.2",
+                  obj = first,
+                  repz,
+                  last_base_obj = first;
     ::std::vector<::std::string> rets;
-    ::std::string last_base_obj = first;
     int i = 0;
     while (true)
       {
