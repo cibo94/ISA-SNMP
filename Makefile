@@ -92,4 +92,5 @@ test:
 	./test.sh -v
 
 ${TARBALL}: ${SOURCE} ${MAKEFILE} ${CMAKELISTS} ${INCLUDE}
-	${TAR.cfv} ${TARBALL} ${SOURCE} ${MAKEFILE} ${CMAKELISTS} ${INCLUDE}
+	${TAR.cfv} ${TARBALL} ${SOURCE} ${MAKEFILE} ${CMAKELISTS} ${INCLUDE}\
+		manual.pdf README
